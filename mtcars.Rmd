@@ -43,7 +43,7 @@ f6 <- update(f2, mpg ~ p2w + am + drat + vs + gear + qsec)
 # evaluate models
 anova(f2, f3, f4, f5, f6)
 ```
-However, the Lotus Europa has a Cook's distance greater than 4 divided by the number of observations, suggesting that this data point may have a high influence on the regression model.
+However, the Lotus Europa has a Cook's distance greater than 0.125 (4 divided by the number of observations), suggesting that this data point may have a high influence on the regression model.
 ```{r echo = FALSE}
 # compare to 4 * number of observations to identify datapoints with high influence
 round(cooks.distance(f4)[cooks.distance(f4) > (4 / nrow(df.car))], 3)
