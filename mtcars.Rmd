@@ -1,7 +1,9 @@
 ---
 title: "The Relationship Between Fuel Economy and Transmission Type"
 date: "May 12, 2015"
-output: html_document
+output: 
+    pdf_document:
+        keep_tex: true
 ---
 ## Executive Summary
 This project involves using the `mtcars` data in the **R** `datasets` package to explore the relationship between fuel economy and type of transmission (automatic vs. manual). The two questions of interest are: (a) is an automatic or manual transmission better for miles per gallon (MPG), and (b) quantify the MPG difference between automatic and manual transmissions.
@@ -41,7 +43,7 @@ f6 <- update(f2, mpg ~ p2w + am + drat + vs + gear + qsec)
 # evaluate models
 anova(f2, f3, f4, f5, f6)
 ```
-However, the Lotus Europa has a Cook's distance greater than 4 divided by the number of observations, suggesting that this data point may have a high influence on the regression model and should be examined more closely.
+However, the Lotus Europa has a Cook's distance greater than 4 divided by the number of observations, suggesting that this data point may have a high influence on the regression model.
 ```{r echo = FALSE}
 # compare to 4 * number of observations to identify datapoints with high influence
 round(cooks.distance(f4)[cooks.distance(f4) > (4 / nrow(df.car))], 3)
@@ -59,13 +61,15 @@ Looking at the confidence intervals below, we can say with 95% confidence that h
 # confidence intervals
 confint(f4b)[3, ]
 ```
-Finally, the variance inflation factors are all less than 4, suggesting that multicollinearity is not present in the final model.
+Finally, the variance inflation factors are all less than 4, suggesting that multicollinearity is not present.
 ```{r echo = FALSE}
 vif(f4b)
 ```
 
 ## Conclusions
 The findings of the current project suggest that: (a) a manual transmission is better for MPG than an automatic, but the difference is greatest for 4-cylinder cars, and (b) having a manual rather than an automatic transmission results in an estimated increase in fuel economy between 1.4 and 8.6 MPG.
+
+###### Note: This report was authored in R Markdown and compiled to pdf using pdflatex (via knitr). Raw source files and R code for all analyses and figures are available at https://github.com/krashski/Regression_Models.
 
 # Appendix
 
