@@ -1,0 +1,119 @@
+---
+title: "The Relationship Between Fuel Economy and Transmission Type"
+date: "May 12, 2015"
+output: html_document
+---
+## Executive Summary
+This project involves using the `mtcars` data in the **R** `datasets` package to explore the relationship between fuel economy and type of transmission (automatic vs. manual). The two questions of interest are: (a) is an automatic or manual transmission better for miles per gallon (MPG), and (b) quantify the MPG difference between automatic and manual transmissions.
+
+## Exploratory Data Analysis
+The `mtcars` data was extracted from the 1974 *Motor Trend* US magazine, and consists of fuel consumption and 10 aspects of automobile design and performance for 32 automobiles. 
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# load the data
+data(mtcars)
+df.car <- mtcars # duplicate data file so as not to modify original
+rm(mtcars)
+
+# load required packages
+library(car)
+library(lattice)
+library(psych)
+```
+Figure 1 shows a boxplot of MPG by number of cylinders (a categorical proxy for the size of the car) by transmission type. The boxplot shows that manual transmissions have a higher MPG value than automatic transmissions, but the difference is greatest for 4-cylinder cars. 
+Further exploratory analysis in Figure 2 shows that predictors that are negatively correlated with MPG are all indicators of a car's power or weight (number of cylinders, engine displacement, horsepower, number of carburators, weight). These predictors are also very highly intercorrelated, which suggests that multicollinearity will be a concern when fitting a regression model. To address this concern, a power-to-weight ratio variable was computed by dividing a car's horsepower by its weight. Figure 3 shows the predictors that are positively correlated with MPG.
+
+## Regression Models
+To explore the relationship between fuel economy and type of transmission while holding other variables constant, start by fitting a linear regression model using power-to-weight ratio and transmission type as predictor variables and MPG as the criterion variable. Then update the model by adding the remaining predictor variables in decreasing order of their correlation with MPG (drive ratio, engine shape, number of transmission speeds, and quarter mile time). The analysis of variance comparing the five models suggests that Model 3 is the final model, as no further statistically significant decrease in RSS is observed.
+```{r echo = FALSE}
+# convert am and vs variables to factors for regression models
+df.car$am <- factor(df.car$am, labels = c("Automatic", "Manual"))
+df.car$vs <- factor(df.car$vs, labels = c("V", "Straight"))
+# create power-to-weight ratio variable
+df.car$p2w <- df.car$hp / df.car$wt # number of hp per 1000lbs
+# create new models starting with power-to-weight and am and 
+# adding remaining variables in decreasing order of correlation with mpg
+f2 <- lm(mpg ~ p2w + am, df.car)
+f3 <- update(f2, mpg ~ p2w + am + drat)
+f4 <- update(f2, mpg ~ p2w + am + drat + vs)
+f5 <- update(f2, mpg ~ p2w + am + drat + vs + gear)
+f6 <- update(f2, mpg ~ p2w + am + drat + vs + gear + qsec)
+
+# evaluate models
+anova(f2, f3, f4, f5, f6)
+```
+However, the Lotus Europa has a Cook's distance greater than 4 divided by the number of observations, suggesting that this data point may have a high influence on the regression model and should be examined more closely.
+```{r echo = FALSE}
+# compare to 4 * number of observations to identify datapoints with high influence
+round(cooks.distance(f4)[cooks.distance(f4) > (4 / nrow(df.car))], 3)
+```
+Figure 4 shows that the slope of the regression line changes drastically depending on whether or not the Lotus Europa is included in the model. This data point has been removed from the final model, which is shown below. The diagnostic plots in Figure 5 do not give reason to suggest that the assumptions of the model (normality, linearity, homoscedasticity) have been violated.
+```{r echo = FALSE}
+### remove Lotus Europa and re-run regression
+df.car2 <- df.car[-28, ]
+f4b <- lm(mpg ~ p2w + am + drat + vs, df.car2)
+# summary stats for final model
+summary(f4b)
+```
+Looking at the confidence intervals below, we can say with 95% confidence that having a manual transmission results in an estimated increase in fuel economy between 1.4 and 8.6 MPG, holding other predictors constant.
+```{r echo = FALSE}
+# confidence intervals
+confint(f4b)[3, ]
+```
+Finally, the variance inflation factors are all less than 4, suggesting that multicollinearity is not present in the final model.
+```{r echo = FALSE}
+vif(f4b)
+```
+
+## Conclusions
+The findings of the current project suggest that: (a) a manual transmission is better for MPG than an automatic, but the difference is greatest for 4-cylinder cars, and (b) having a manual rather than an automatic transmission results in an estimated increase in fuel economy between 1.4 and 8.6 MPG.
+
+# Appendix
+
+```{r boxplot, echo = FALSE, fig.height = 6, fig.width = 8}
+# convert am and cyl variables to factors for boxplot
+df.car$am <- factor(df.car$am, labels = c("Automatic", "Manual"))
+df.car$cyl <- factor(df.car$cyl, labels = c("4 cyl", "6 cyl", "8 cyl"))
+
+with(df.car, bwplot(mpg ~ am | cyl, layout = c(3, 1),
+    main = "Figure 1: MPG by Number of Cylinders and Transmission Type",
+    xlab = "Transmission Type", ylab = "MPG"))
+```
+
+```{r scatterplot1, echo = FALSE, fig.height = 8, fig.width = 8}
+# convert am and cyl variables back to numeric for correlations
+df.car$am <- as.numeric(df.car$am)
+df.car$cyl <- as.numeric(df.car$cyl)
+
+# scatterplot matrix
+pairs.panels(df.car[, c(1, 2, 3, 4, 6, 11)], 
+             main = "Figure 2: Predictors Negatively Correlated With MPG")
+```
+
+```{r scatterplot2, echo = FALSE, fig.height = 8, fig.width = 8}
+pairs.panels(df.car[, c(1, 5, 7, 8, 9, 10)], 
+             main = "Figure 3: Predictors Positively Correlated With MPG")
+```
+
+```{r scatterplot3, echo = FALSE, fig.height = 8, fig.width = 8}
+# remove Lotus Europa and re-run regression
+df.car2 <- df.car[-28, ]
+f4b <- lm(mpg ~ p2w + am + drat + vs, df.car2)
+
+# plot regression lines with and without Lotus Europa
+plot(mpg ~ p2w, df.car, pch = 19, 
+     main = "Figure 4: Lotus Europa Is An Influential Data Point",
+     xlab = "Power-To-Weight Ratio (Horsepower/1000 lbs)",
+     ylab = "MPG")
+text(df.car$p2w[28], df.car$mpg[28], row.names(df.car)[28], pos = 1)
+abline(lm(df.car$mpg ~ df.car$p2w), lwd = 2, col = "blue")
+abline(lm(df.car2$mpg ~ df.car2$p2w), lwd = 2, col = "orange")
+legend('topright', c("With Lotus Europa", "Without Lotus Europa"),
+       lty = 1, lwd = 2, col = c("blue", "orange"))
+```
+
+```{r diagnostic, echo = FALSE, fig.height = 8, fig.width = 8}
+# diagnostic plots for final model
+par(mfrow = c(2, 2))
+plot(f4b, main = "Figure 5: Diagnotic Plots")
+par(mfrow = c(1, 1))
+```
