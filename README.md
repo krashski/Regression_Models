@@ -7,7 +7,7 @@ You work for Motor Trend, a magazine about the automobile industry. Looking at a
 
 ## Question
 
-Take the mtcars data set and write up an analysis to answer their question using regression models and exploratory data analyses.
+Take the `mtcars` data set and write up an analysis to answer their question using regression models and exploratory data analyses.
 
 Your report must be:
 
